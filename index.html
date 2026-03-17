@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Result Portal</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Shooting Stars Animation */
+        .stars-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; overflow: hidden;
+        }
+        .star {
+            position: absolute;
+            width: 80px; /* তারার লেজের দৈর্ঘ্য */
+            height: 2px;
+            background: linear-gradient(to right, rgba(255,255,255,1), transparent);
+            animation: shooting linear infinite;
+            opacity: 0;
+            transform: rotate(-45deg); /* বাঁকা করে ফেলার জন্য */
+        }
+        .star::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0; /* তারার মূল মাথা */
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 12px 4px rgba(255, 255, 255, 0.8); /* আলোর ছটা */
+        }
+        @keyframes shooting {
+            0% { transform: translate(0, 0) rotate(-45deg); opacity: 1; }
+            100% { transform: translate(-120vw, 120vh) rotate(-45deg); opacity: 0; }
+        }
+
+        .container {
+            position: relative; z-index: 10;
+            width: 90%; max-width: 600px;
+            margin-top: 50px; margin-bottom: 50px;
+        }
+
+        /* Search Section */
+        .search-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px; border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .search-box h2 { color: #1e3c72; font-size: 22px; margin-bottom: 20px; line-height: 1.5; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #444; }
+        .input-group input {
+            width: 100%; padding: 12px; border: 2px solid #ddd;
+            border-radius: 10px; font-size: 16px; outline: none;
+            transition: 0.3s;
+        }
+        .input-group input:focus { border-color: #2c5364; box-shadow: 0 0 8px rgba(44, 83, 100, 0.3); }
+        .search-btn {
+            background: #2c5364; color: white; border: none;
+            padding: 12px 30px; font-size: 18px; border-radius: 10px;
+            cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s;
+        }
+        .search-btn:hover { background: #1e3c72; transform: translateY(-2px); }
+
+        /* Result Card */
+        #result-section { display: none; margin-top: 30px; }
+        .result-card {
+            background: white; padding: 30px;
+            border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            border-top: 8px solid #2c5364;
+        }
+        
+        /* Status Messages - Modified based on your logic */
+        .status-msg {
+            padding: 15px; border-radius: 10px; font-weight: bold;
+            text-align: center; margin-bottom: 20px; font-size: 18px; line-height: 1.5;
+        }
+        .status-good { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-bad { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-first { background: #fce4ec; color: #ad1457; border: 1px solid #f8bbd0; } /* গোলাপি রঙের ব্যকগ্রাউন্ড */
+
+        .info-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+            margin-bottom: 20px; font-size: 16px;
+        }
+        .info-item span:first-child { font-weight: bold; color: #555; }
+        .info-item span:last-child { color: #111; display: block; font-size: 18px;}
+
+        /* Roll Highlights */
+        .roll-highlight {
+            display: flex; justify-content: space-around; align-items: center;
+            background: #f1f2f6; padding: 15px; border-radius: 15px;
+            margin: 20px 0; border: 2px dashed #a4b0be;
+        }
+        .roll-box { text-align: center; }
+        .roll-box p { font-size: 14px; color: #555; font-weight: bold; }
+        .roll-box h3 { font-size: 28px; color: #e15f41; }
+        .roll-arrow { font-size: 30px; color: #747d8c; }
+
+        /* Letter Section */
+        .letter-section {
+            background: #fff9e6; padding: 25px; border-radius: 15px;
+            margin-top: 30px; position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border-left: 5px solid #f6b93b;
+        }
+        .letter-text { font-size: 17px; line-height: 1.6; color: #3d3d3d; font-style: italic; }
+        .letter-signature { margin-top: 15px; font-weight: bold; text-align: right; color: #2f3640; }
+
+        /* Download Button */
+        .download-btn {
+            background: #e15f41; color: white; border: none;
+            padding: 15px; font-size: 18px; border-radius: 10px;
+            cursor: pointer; width: 100%; font-weight: bold; margin-top: 25px;
+            transition: 0.3s; box-shadow: 0 4px 10px rgba(225, 95, 65, 0.4);
+        }
+        .download-btn:hover { background: #c44525; transform: translateY(-2px); }
+        
+        /* Loader */
+        .loader { display: none; text-align: center; color: white; margin-top: 20px; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    <div class="stars-container" id="stars"></div>
+
+    <div class="container">
+        <!-- Search Section -->
+        <div class="search-box" id="search-section">
+            <h2>প্রিয় শিক্ষার্থী, তোমার পরিক্ষার রেজাল্ট দেখতে নিচে আইডি নম্বর আর পরিক্ষা নম্বর দাও</h2>
+            <div class="input-group">
+                <label for="studentId">আইডি নম্বর (ID):</label>
+                <input type="text" id="studentId" placeholder="তোমার আইডি দাও">
+            </div>
+            <div class="input-group">
+                <label for="examNo">পরিক্ষা নম্বর (Exam No):</label>
+                <input type="text" id="examNo" placeholder="পরিক্ষা নম্বর দাও">
+            </div>
+            <button class="search-btn" onclick="fetchResult()">রেজাল্ট দেখো</button>
+            <div class="loader" id="loader">অপেক্ষা করো, রেজাল্ট খোঁজা হচ্ছে... ⏳</div>
+        </div>
+
+        <!-- Result Section -->
+        <div id="result-section">
+            <div class="result-card" id="result-card">
+                <!-- Dynamic Status Message -->
+                <div id="status-message"></div>
+
+                <div class="info-grid">
+                    <div class="info-item"><span>শিক্ষার্থীর নাম:</span> <span id="r-name"></span></div>
+                    <div class="info-item"><span>কোর্সের নাম:</span> <span id="r-course"></span></div>
+                    <div class="info-item"><span>ব্যাচ নম্বর:</span> <span id="r-batch"></span></div>
+                    <div class="info-item"><span>গ্রুপ:</span> <span id="r-group"></span></div>
+                    <div class="info-item"><span>রেজাল্ট দেয়ার তারিখ:</span> <span id="r-date"></span></div>
+                </div>
+
+                <div class="roll-highlight">
+                    <div class="roll-box">
+                        <p>আগের রোল</p>
+                        <h3 id="r-old-roll"></h3>
+                    </div>
+                    <div class="roll-arrow">➔</div>
+                    <div class="roll-box">
+                        <p>নতুন রোল</p>
+                        <h3 id="r-new-roll" style="color: #2ed573;"></h3>
+                    </div>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-item"><span>উপস্থিতি নম্বর:</span> <span id="r-attendance"></span></div>
+                    <div class="info-item"><span>আচরণ নম্বর:</span> <span id="r-behavior"></span></div>
+                    <div class="info-item"><span>পরিক্ষায় প্রাপ্ত নম্বর:</span> <span id="r-exam-marks"></span></div>
+                    <div class="info-item"><span>মোট প্রাপ্ত নম্বর:</span> <span id="r-total-marks"></span></div>
+                </div>
+            </div>
+
+            <!-- Letter Section -->
+            <div class="letter-section" id="letter-section" style="display: none;">
+                <div class="letter-text" id="r-letter"></div>
+                <div class="letter-signature">শিক্ষিকা অধরা ইসলাম অন্তরা</div>
+            </div>
+
+            <button class="download-btn" onclick="confirmDownload()">Download Your Result</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Shooting Stars Animation ---
+        const starsContainer = document.getElementById('stars');
+        // তারার পরিমাণ কমিয়ে ১৫ করা হয়েছে যাতে ঘন ঘন না পড়ে
+        for (let i = 0; i < 15; i++) {
+            let star = document.createElement('div');
+            star.classList.add('star');
+            
+            // তারাগুলো স্ক্রিনের উপর ও ডান দিক থেকে তৈরি হবে যাতে কোনাকুনি ভাবে পড়তে পারে
+            star.style.top = (Math.random() * 50 - 50) + 'vh'; 
+            star.style.left = (Math.random() * 150) + 'vw';
+            
+            // ধীরে পড়ার জন্য সময় (4 থেকে 10 সেকেন্ড)
+            let duration = Math.random() * 6 + 4; 
+            // থেমে থেমে পড়ার জন্য ডীলে (0 থেকে 15 সেকেন্ড)
+            let delay = Math.random() * 15; 
+            
+            star.style.animationDuration = duration + 's';
+            star.style.animationDelay = delay + 's';
+            
+            starsContainer.appendChild(star);
+        }
+
+        // --- REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL ---
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxcnvS3wPQkkQjYpDuCOIrUOTAkXNe16Bsx_JPsAuA-cFSmD4V7-7WCOTv6GUCxDng2/exec"; 
+
+        // --- 2. Fetch Result Logic ---
+        function fetchResult() {
+            const studentId = document.getElementById('studentId').value.trim();
+            const examNo = document.getElementById('examNo').value.trim();
+
+            if (!studentId || !examNo) {
+                Swal.fire({ icon: 'warning', title: 'ভুল ইনপুট', text: 'দয়া করে আইডি এবং পরিক্ষা নম্বর দুটোই সঠিকভাবে দাও!' });
+                return;
+            }
+
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('result-section').style.display = 'none';
+
+            fetch(`${SCRIPT_URL}?id=${encodeURIComponent(studentId)}&examNo=${encodeURIComponent(examNo)}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loader').style.display = 'none';
+
+                    if (data.status === 'id_not_found') {
+                        Swal.fire({ icon: 'error', title: 'আইডি পাওয়া যায়নি', text: 'তোমার দেয়া আইডিটি সঠিক নয়। দয়া করে সঠিক আইডি নম্বর দাও।' });
+                    } else if (data.status === 'exam_not_found') {
+                        Swal.fire({ icon: 'error', title: 'পরিক্ষা নম্বর পাওয়া যায়নি', text: 'তোমার দেয়া পরিক্ষা নম্বরটি এই আইডির সাথে মিলছে না। সঠিক নম্বর দাও।' });
+                    } else if (data.status === 'success') {
+                        displayResult(data.data);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loader').style.display = 'none';
+                    Swal.fire({ icon: 'error', title: 'সমস্যা হচ্ছে!', text: 'ইন্টারনেট কানেকশন চেক করো অথবা একটু পর আবার চেষ্টা করো।' });
+                });
+        }
+
+        // --- 3. Display Result Function ---
+        function displayResult(data) {
+            document.getElementById('search-section').style.display = 'none';
+            document.getElementById('result-section').style.display = 'block';
+
+            document.getElementById('r-name').innerText = data.name || '-';
+            document.getElementById('r-course').innerText = data.course || '-';
+            document.getElementById('r-batch').innerText = data.batch || '-';
+            document.getElementById('r-group').innerText = data.group || '-';
+            
+            // Date Format Check
+            let dateText = data.date;
+            if(dateText && dateText.includes('T')) {
+                dateText = new Date(dateText).toLocaleDateString('bn-BD');
+            }
+            document.getElementById('r-date').innerText = dateText || '-';
+
+            document.getElementById('r-attendance').innerText = data.attendance || '-';
+            document.getElementById('r-behavior').innerText = data.behavior || '-';
+            document.getElementById('r-exam-marks').innerText = data.examMarks || '-';
+            document.getElementById('r-total-marks').innerText = data.totalMarks || '-';
+
+            // Roll Logic
+            const oldRollVal = data.oldRoll ? String(data.oldRoll).trim() : "";
+            const oldRoll = parseInt(oldRollVal);
+            const newRoll = parseInt(data.newRoll);
+            
+            // যদি রোল না থাকে তাহলে ড্যাশ (-) দেখাবে
+            document.getElementById('r-old-roll').innerText = isNaN(oldRoll) ? '-' : oldRoll;
+            document.getElementById('r-new-roll').innerText = isNaN(newRoll) ? '-' : newRoll;
+
+            // Conditional Message Logic (আপডেট করা হয়েছে)
+            const statusBox = document.getElementById('status-message');
+            
+            if (oldRollVal === "" || isNaN(oldRoll)) {
+                // আগের রোল না থাকলে (প্রথম পরীক্ষা)
+                statusBox.className = 'status-msg status-first';
+                statusBox.innerText = "প্রিয় শিক্ষার্থী, আলহামদুলিল্লাহ তোমাদের প্রথম পরিক্ষা শেষ হলো।";
+            } else if (newRoll < oldRoll) {
+                // আগের চেয়ে ভালো করলে
+                statusBox.className = 'status-msg status-good';
+                statusBox.innerText = "আলহামদুলিল্লাহ, প্রিয় আপুমনি তোমার পরিক্ষার ফলাফল আগের চেয়ে ভালো হয়েছে";
+            } else {
+                // আগের চেয়ে খারাপ করলে
+                statusBox.className = 'status-msg status-bad';
+                statusBox.innerText = "পরিক্ষার রেজাল্ট খারাপ হওয়ার জন্য মন খারাপ করবে না প্রিয় আপুমনি। ইনশা আল্লাহ পরবর্তীতে তুমি আরো ভালো কিছু করতে পারবে";
+            }
+
+            // Letter Section Logic
+            const letterSection = document.getElementById('letter-section');
+            if (data.letter && data.letter.trim() !== '') {
+                document.getElementById('r-letter').innerText = data.letter;
+                letterSection.style.display = 'block';
+            } else {
+                letterSection.style.display = 'none';
+            }
+        }
+
+        // --- 4. Download Result Logic ---
+        function confirmDownload() {
+            Swal.fire({
+                title: 'ডাউনলোড করতে চাও?',
+                text: "তোমার রেজাল্ট কার্ডটি ইমেজ হিসেবে সেভ হবে।",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2ed573',
+                cancelButtonColor: '#e15f41',
+                confirmButtonText: 'হ্যাঁ, ডাউনলোড করবো',
+                cancelButtonText: 'না, থাক'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    downloadResultCard();
+                }
+            })
+        }
+
+        function downloadResultCard() {
+            const card = document.getElementById('result-card');
+            html2canvas(card, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'My_Result_Card.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
